@@ -33,22 +33,16 @@ app.get('/api/balance/:id', async (req, res) => {
 bot.start(async (ctx) => {
     const telegramId = ctx.from.id.toString();
     
-    // ເພີ່ມການຈັບ Error ບ່ອນນີ້
-    const { data, error } = await supabase
-        .from('users')
-        .upsert([{ telegram_id: telegramId }], { onConflict: 'telegram_id' });
+    // ບັນທຶກ ID ລົງຖານຂໍ້ມູນ
+    await supabase.from('users').upsert([{ telegram_id: telegramId }], { onConflict: 'telegram_id' });
     
-    if (error) {
-        // ຖ້າມີ Error ໃຫ້ Bot ຕອບກັບມາບອກເຮົາເລີຍວ່າຜິດຍ້ອນຫຍັງ
-        console.error("Supabase Error:", error);
-        return ctx.reply(`❌ ລະບົບບັນທຶກຖານຂໍ້ມູນຂັດຂ້ອງ: ${error.message}`);
-    }
-    
-    // ຖ້າບໍ່ມີ Error ໃຫ້ສະແດງປົກກະຕິ
+    // --- ຈຸດສຳຄັນທີ່ປ່ຽນໃໝ່: ເອົາ ID ຫ້ອຍຕິດທ້າຍ URL ໄປເລີຍ ---
+    const appUrl = `https://vansylivatthana-bot.github.io/lucky-number-app/?userid=${telegramId}`;
+
     ctx.reply('ຍິນດີຕ້ອນຮັບ! 🎉\nກະລຸນາກົດປຸ່ມລຸ່ມນີ້ເພື່ອເປີດແອັບຊື້ຕົວເລກນຳໂຊກ:', {
         reply_markup: {
             keyboard: [
-                [{ text: "📲 ເປີດແອັບຊື້ຕົວເລກ", web_app: { url: "https://vansylivatthana-bot.github.io/lucky-number-app/" } }]
+                [{ text: "📲 ເປີດແອັບຊື້ຕົວເລກ", web_app: { url: appUrl } }]
             ],
             resize_keyboard: true
         }
