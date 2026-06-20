@@ -30,7 +30,7 @@ bot.start(async (ctx) => {
     ctx.reply('ຍິນດີຕ້ອນຮັບ! 🎉\nກະລຸນາກົດປຸ່ມລຸ່ມນີ້ເພື່ອເປີດແອັບຊື້ຕົວເລກນຳໂຊກ:', {
         reply_markup: {
             keyboard: [
-                [{ text: "📲 ເປີດແອັບຊື້ຕົວເລກ", web_app: { url: "ໃສ່_ລິ້ງ_GitHub_Pages_ຂອງທ່ານບ່ອນນີ້" } }]
+                [{ text: "📲 ເປີດແອັບຊື້ຕົວເລກ", web_app: { url: "https://vansylivatthana-bot.github.io/lucky-number-app/" } }]
             ],
             resize_keyboard: true
         }
