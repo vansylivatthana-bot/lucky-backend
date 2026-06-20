@@ -3,9 +3,9 @@ const { createClient } = require('@supabase/supabase-js');
 const express = require('express'); // ເພີ່ມ Express ເຂົ້າມາສຳລັບ Render
 
 // ໃສ່ລະຫັດຂອງທ່ານບ່ອນນີ້
-const BOT_TOKEN = 'ໃສ່_Token_ຂອງ_Telegram_Bot_ບ່ອນນີ້';
-const SUPABASE_URL = 'ໃສ່_Project_URL_ຂອງ_Supabase_ບ່ອນນີ້';
-const SUPABASE_KEY = 'ໃສ່_API_Key_ຂອງ_Supabase_ບ່ອນນີ້';
+const BOT_TOKEN = '8921585286:AAHKSC1r_Zg0SvTwpjm79A_NPj0gzwHaECg';
+const SUPABASE_URL = 'https://fsrpcwrhskhnglrmutsz.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_iDgnFosf3Q5Sc4gp0i1zxQ_Q6ac_lRh';
 
 const bot = new Telegraf(BOT_TOKEN);
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
