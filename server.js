@@ -10,6 +10,7 @@ const SUPABASE_KEY = 'sb_secret_CGMwhxFtwz39gMzZmVEfgg_gk4BGK4e';
 const bot = new Telegraf(BOT_TOKEN);
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const app = express();
+
 // --- API ສຳລັບດຶງຍອດເງິນໄປສະແດງໜ້າແອັບ ---
 app.get('/api/balance/:id', async (req, res) => {
     // ອະນຸຍາດໃຫ້ໜ້າເວັບ (Frontend) ສາມາດດຶງຂໍ້ມູນໄດ້
@@ -121,6 +122,7 @@ bot.on('web_app_data', async (ctx) => {
         }
     }
 });
+
 // --- ລະບົບແອັດມິນເຕີມເງິນ (Admin Top-up) ---
 // ລັອກໄວ້ໃຫ້ສະເພາະ ID ຂອງທ່ານຜູ້ດຽວທີ່ສັ່ງເຕີມເງິນໄດ້
 const ADMIN_ID = '1774450602'; 
@@ -187,6 +189,75 @@ bot.command('topup', async (ctx) => {
         ctx.reply('❌ ເກີດຂໍ້ຜິດພາດໃນການເຕີມເງິນ ກະລຸນາລອງໃໝ່ພາຍຫຼັງ.');
     }
 });
+
+// --- ລະບົບອອກລາງວັນ (Prize Draw) ---
+// ສະເພາະແອັດມິນເທົ່ານັ້ນທີ່ສາມາດສັ່ງອອກລາງວັນໄດ້
+bot.command('draw', async (ctx) => {
+    const senderId = ctx.from.id.toString();
+
+    // ກວດສອບວ່າແມ່ນແອັດມິນຫຼືບໍ່
+    if (senderId !== ADMIN_ID) {
+        return ctx.reply('❌ ຂໍອະໄພ, ທ່ານບໍ່ມີສິດນຳໃຊ້ຄຳສັ່ງນີ້.');
+    }
+
+    // ແຍກຂໍ້ຄວາມເພື່ອເອົາຕົວເລກທີ່ຖືກລາງວັນ
+    const messageParts = ctx.message.text.split(' ');
+    
+    if (messageParts.length !== 2) {
+        return ctx.reply('⚠️ ຮູບແບບຄຳສັ່ງບໍ່ຖືກຕ້ອງ.\nວິທີໃຊ້: /draw [ຕົວເລກ 5 ຫຼັກ]\nຕົວຢ່າງ: /draw 99999');
+    }
+
+    const winningNumber = messageParts[1];
+
+    // ກວດສອບວ່າພິມຄົບ 5 ຫຼັກຫຼືບໍ່
+    if (winningNumber.length !== 5 || isNaN(winningNumber)) {
+        return ctx.reply('❌ ກະລຸນາປ້ອນຕົວເລກໃຫ້ຄົບ 5 ຫຼັກ.');
+    }
+
+    try {
+        // 1. ຄົ້ນຫາຜູ້ທີ່ຊື້ເລກນີ້ຈາກຖານຂໍ້ມູນ (ຕາຕະລາງ tickets)
+        const { data: winningTickets, error } = await supabase
+            .from('tickets')
+            .select('owner_telegram_id')
+            .eq('ticket_number', winningNumber);
+
+        if (error) throw error;
+
+        // ຖ້າບໍ່ມີຄົນຊື້ເລກນີ້ເລີຍ
+        if (!winningTickets || winningTickets.length === 0) {
+            return ctx.reply(`ປະກາດຜົນລາງວັນ: [ ${winningNumber} ] 🏆\n\n😔 ງວດນີ້ບໍ່ມີລູກຄ້າຖືກລາງວັນເລີຍ.`);
+        }
+
+        // 2. ນັບຈຳນວນຜູ້ໂຊກດີ
+        const winnersMap = {};
+        winningTickets.forEach(ticket => {
+            const id = ticket.owner_telegram_id;
+            winnersMap[id] = (winnersMap[id] || 0) + 1; // ບວກຈຳນວນປີ້ທີ່ຖືກ
+        });
+
+        // 3. ສົ່ງຂໍ້ຄວາມແຈ້ງເຕືອນຫາຜູ້ໂຊກດີແຕ່ລະຄົນໂດຍກົງ
+        let successCount = 0;
+        for (const [userId, count] of Object.entries(winnersMap)) {
+            try {
+                await bot.telegram.sendMessage(
+                    userId,
+                    `🎉 ຊົມເຊີຍ!!! ຂໍສະແດງຄວາມຍິນດີນຳເດີ້! 🎉\n\nຕົວເລກ [ ${winningNumber} ] ທີ່ທ່ານຊື້ (ຈຳນວນ ${count} ປີ້) ໄດ້ຖືກລາງວັນໃຫຍ່ງວດນີ້! 🏆\n\nກະລຸນາຕິດຕໍ່ແອັດມິນເພື່ອຮັບເງິນລາງວັນເລີຍ!`
+                );
+                successCount++;
+            } catch (err) {
+                console.log(`ບໍ່ສາມາດສົ່ງຂໍ້ຄວາມຫາ ID: ${userId} ໄດ້ (ລູກຄ້າອາດບລັອກບັອດ)`);
+            }
+        }
+
+        // 4. ສະຫຼຸບລາຍງານໃຫ້ແອັດມິນຊາບ
+        ctx.reply(`✅ ອອກລາງວັນສຳເລັດ: [ ${winningNumber} ] 🏆\n\nພົບຜູ້ຖືກລາງວັນທັງໝົດ ${Object.keys(winnersMap).length} ຄົນ (ລວມ ${winningTickets.length} ປີ້).\nສົ່ງແຈ້ງເຕືອນຫາລູກຄ້າສຳເລັດແລ້ວ ${successCount} ຄົນ.`);
+
+    } catch (err) {
+        console.error("Draw Error:", err);
+        ctx.reply('❌ ເກີດຂໍ້ຜິດພາດໃນການອອກລາງວັນ ກະລຸນາລອງໃໝ່ພາຍຫຼັງ.');
+    }
+});
+
 bot.launch();
 console.log('🚀 Telegram Bot ກຳລັງເຮັດວຽກ...');
 
@@ -194,6 +265,7 @@ console.log('🚀 Telegram Bot ກຳລັງເຮັດວຽກ...');
 app.get('/', (req, res) => {
     res.send('Lucky Number Bot Backend is running successfully!');
 });
+
 // --- API ສຳລັບດຶງປະຫວັດການຊື້ (My Tickets) ---
 app.get('/api/tickets/:id', async (req, res) => {
     res.header("Access-Control-Allow-Origin", "*"); 
@@ -201,7 +273,7 @@ app.get('/api/tickets/:id', async (req, res) => {
         const { data, error } = await supabase
             .from('tickets')
             .select('ticket_number')
-            .eq('owner_telegram_id', req.params.id); // ສິ້ນສຸດແຄ່ນີ້ (ລຶບແຖວລຽງລຳດັບອອກ)
+            .eq('owner_telegram_id', req.params.id); 
 
         if (error) throw error;
         res.json({ tickets: data || [] });
@@ -210,6 +282,7 @@ app.get('/api/tickets/:id', async (req, res) => {
         res.json({ tickets: [] });
     }
 });
+
 // Render ຈະສົ່ງລະຫັດ Port ມາໃຫ້ເອງ, ຖ້າບໍ່ມີໃຫ້ໃຊ້ 3000
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
