@@ -15,7 +15,15 @@ const app = express();
 bot.start(async (ctx) => {
     const telegramId = ctx.from.id.toString();
     await supabase.from('users').upsert([{ telegram_id: telegramId }], { onConflict: 'telegram_id' });
-    ctx.reply('ຍິນດີຕ້ອນຮັບ! 🎉\nກົດປຸ່ມ "ເປີດແອັບ" ຢູ່ລຸ່ມຊ້າຍມືເພື່ອຊື້ຕົວເລກນຳໂຊກໄດ້ເລີຍ.');
+    
+    ctx.reply('ຍິນດີຕ້ອນຮັບ! 🎉\nກະລຸນາກົດປຸ່ມລຸ່ມນີ້ເພື່ອເປີດແອັບຊື້ຕົວເລກນຳໂຊກ:', {
+        reply_markup: {
+            keyboard: [
+                [{ text: "📲 ເປີດແອັບຊື້ຕົວເລກ", web_app: { url: "ໃສ່_ລິ້ງ_GitHub_Pages_ຂອງທ່ານບ່ອນນີ້" } }]
+            ],
+            resize_keyboard: true
+        }
+    });
 });
 
 bot.on('web_app_data', async (ctx) => {
