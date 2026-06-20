@@ -45,7 +45,20 @@ bot.on('web_app_data', async (ctx) => {
         const ticketNumber = data.number;
         ctx.reply(`⏳ ກຳລັງກວດສອບໝາຍເລກ ${ticketNumber}...`);
         
-        const { error } = await supabase.from('tickets').insert([{ ticket_number: ticketNumber, owner_telegram_id: telegramId }]);
+        // 1. ສ້າງວັນທີ ແລະ ເວລາປັດຈຸບັນ (ປັບເປັນເວລາປະເທດລາວ UTC+7 ເພາະເຊີບເວີ Render ຢູ່ຕ່າງປະເທດ)
+        const now = new Date();
+        now.setHours(now.getHours() + 7); 
+        
+        const currentDate = now.toISOString().split('T')[0]; // ຈະໄດ້ຮູບແບບ YYYY-MM-DD
+        const currentTime = now.toISOString().split('T')[1].substring(0, 8); // ຈະໄດ້ຮູບແບບ HH:MM:SS
+
+        // 2. ບັນທຶກຂໍ້ມູນທັງໝົດລົງຕາຕະລາງ tickets
+        const { error } = await supabase.from('tickets').insert([{ 
+            ticket_number: ticketNumber, 
+            owner_telegram_id: telegramId,
+            Date_book: currentDate,   // ສົ່ງຂໍ້ມູນເຂົ້າຖັນ Date_book
+            Time_book: currentTime    // ສົ່ງຂໍ້ມູນເຂົ້າຖັນ Time_book
+        }]);
             
         if (error) {
             ctx.reply('❌ ຂໍອະໄພ, ຕົວເລກນີ້ຖືກຊື້ໄປແລ້ວ ກະລຸນາເລືອກໃໝ່.');
