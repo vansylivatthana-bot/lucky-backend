@@ -43,27 +43,69 @@ bot.on('web_app_data', async (ctx) => {
     
     if (data.action === 'buy_number') {
         const ticketNumber = data.number;
-        ctx.reply(`⏳ ກຳລັງກວດສອບໝາຍເລກ ${ticketNumber}...`);
+        ctx.reply(`⏳ ກຳລັງກວດສອບຍອດເງິນ ແລະ ໝາຍເລກ ${ticketNumber}...`);
         
-        // 1. ສ້າງວັນທີ ແລະ ເວລາປັດຈຸບັນ (ປັບເປັນເວລາປະເທດລາວ UTC+7 ເພາະເຊີບເວີ Render ຢູ່ຕ່າງປະເທດ)
-        const now = new Date();
-        now.setHours(now.getHours() + 7); 
-        
-        const currentDate = now.toISOString().split('T')[0]; // ຈະໄດ້ຮູບແບບ YYYY-MM-DD
-        const currentTime = now.toISOString().split('T')[1].substring(0, 8); // ຈະໄດ້ຮູບແບບ HH:MM:SS
+        try {
+            // ----- ຂັ້ນຕອນທີ 1: ກວດສອບຍອດເງິນລູກຄ້າ -----
+            const { data: userData, error: userError } = await supabase
+                .from('users')
+                .select('wallet_balance')
+                .eq('telegram_id', telegramId)
+                .single();
 
-        // 2. ບັນທຶກຂໍ້ມູນທັງໝົດລົງຕາຕະລາງ tickets
-        const { error } = await supabase.from('tickets').insert([{ 
-            ticket_number: ticketNumber, 
-            owner_telegram_id: telegramId,
-            Date_book: currentDate,   // ສົ່ງຂໍ້ມູນເຂົ້າຖັນ Date_book
-            Time_book: currentTime    // ສົ່ງຂໍ້ມູນເຂົ້າຖັນ Time_book
-        }]);
+            if (userError || !userData) {
+                return ctx.reply('❌ ບໍ່ສາມາດດຶງຂໍ້ມູນກະເປົາເງິນໄດ້ ກະລຸນາພິມ /start ໃໝ່ອີກຄັ້ງ.');
+            }
+
+            // ຖ້າຍອດເງິນໜ້ອຍກວ່າ 10 USDT ໃຫ້ປະຕິເສດການຂາຍ
+            if (userData.wallet_balance < 10) {
+                return ctx.reply(`❌ ຍອດເງິນຂອງທ່ານບໍ່ພຽງພໍ.\n(ຍອດຄົງເຫຼືອ: ${userData.wallet_balance} USDT)\nກະລຸນາເຕີມເງິນເຂົ້າກະເປົາຢ່າງໜ້ອຍ 10 USDT ເພື່ອສັ່ງຊື້.`);
+            }
+
+            // ----- ຂັ້ນຕອນທີ 2: ກວດສອບວ່າເລກນີ້ວ່າງຫຼືບໍ່ -----
+            const { data: existTicket } = await supabase
+                .from('tickets')
+                .select('ticket_number')
+                .eq('ticket_number', ticketNumber)
+                .single();
+
+            if (existTicket) {
+                return ctx.reply('❌ ຂໍອະໄພ, ຕົວເລກນີ້ຖືກຊື້ໄປແລ້ວ ກະລຸນາເລືອກຕົວເລກໃໝ່.');
+            }
+
+            // ----- ຂັ້ນຕອນທີ 3: ຕັດເງິນ ແລະ ບັນທຶກຕົວເລກ -----
+            const newBalance = userData.wallet_balance - 10; // ຫັກເງິນ 10 USDT
             
-        if (error) {
-            ctx.reply('❌ ຂໍອະໄພ, ຕົວເລກນີ້ຖືກຊື້ໄປແລ້ວ ກະລຸນາເລືອກໃໝ່.');
-        } else {
-            ctx.reply(`✅ ບິນຢັ້ງຢືນສຳເລັດ!\nທ່ານໄດ້ເປັນເຈົ້າຂອງໝາຍເລກ [ ${ticketNumber} ] ຮຽບຮ້ອຍແລ້ວ! 🎉`);
+            // ອັບເດດຍອດເງິນໃໝ່ລົງຕາຕະລາງ users
+            const { error: updateError } = await supabase
+                .from('users')
+                .update({ wallet_balance: newBalance })
+                .eq('telegram_id', telegramId);
+                
+            if (updateError) throw updateError;
+
+            // ກຽມວັນທີ ແລະ ເວລາ (UTC+7)
+            const now = new Date();
+            now.setHours(now.getHours() + 7); 
+            const currentDate = now.toISOString().split('T')[0];
+            const currentTime = now.toISOString().split('T')[1].substring(0, 8);
+
+            // ບັນທຶກຕົວເລກລົງຕາຕະລາງ tickets
+            const { error: insertError } = await supabase.from('tickets').insert([{ 
+                ticket_number: ticketNumber, 
+                owner_telegram_id: telegramId,
+                Date_book: currentDate,
+                Time_book: currentTime
+            }]);
+            
+            if (insertError) throw insertError;
+
+            // ອອກບິນຮັບເງິນ
+            ctx.reply(`✅ ບິນຢັ້ງຢືນສຳເລັດ!\n\n🎟️ ໝາຍເລກຂອງທ່ານ: [ ${ticketNumber} ]\n💸 ຍອດເງິນຄົງເຫຼືອ: ${newBalance} USDT\n\nຂໍໃຫ້ໂຊກດີໃນງວດນີ້! 🎉`);
+
+        } catch (err) {
+            console.error("System Error:", err);
+            ctx.reply('❌ ລະບົບຂັດຂ້ອງຊົ່ວຄາວ ກະລຸນາລອງໃໝ່ພາຍຫຼັງ.');
         }
     }
 });
