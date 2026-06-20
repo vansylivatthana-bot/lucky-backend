@@ -194,7 +194,23 @@ console.log('🚀 Telegram Bot ກຳລັງເຮັດວຽກ...');
 app.get('/', (req, res) => {
     res.send('Lucky Number Bot Backend is running successfully!');
 });
+// --- API ສຳລັບດຶງປະຫວັດການຊື້ (My Tickets) ---
+app.get('/api/tickets/:id', async (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*"); 
+    try {
+        const { data, error } = await supabase
+            .from('tickets')
+            .select('ticket_number')
+            .eq('owner_telegram_id', req.params.id)
+            .order('id', { ascending: false }); // ລຽງຈາກໃໝ່ລົງເກົ່າ
 
+        if (error) throw error;
+        res.json({ tickets: data || [] });
+    } catch (err) {
+        console.error("ດຶງປະຫວັດຜິດພາດ:", err);
+        res.json({ tickets: [] });
+    }
+});
 // Render ຈະສົ່ງລະຫັດ Port ມາໃຫ້ເອງ, ຖ້າບໍ່ມີໃຫ້ໃຊ້ 3000
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
