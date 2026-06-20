@@ -1,0 +1,51 @@
+const { Telegraf } = require('telegraf');
+const { createClient } = require('@supabase/supabase-js');
+const express = require('express'); // ເພີ່ມ Express ເຂົ້າມາສຳລັບ Render
+
+// ໃສ່ລະຫັດຂອງທ່ານບ່ອນນີ້
+const BOT_TOKEN = 'ໃສ່_Token_ຂອງ_Telegram_Bot_ບ່ອນນີ້';
+const SUPABASE_URL = 'ໃສ່_Project_URL_ຂອງ_Supabase_ບ່ອນນີ້';
+const SUPABASE_KEY = 'ໃສ່_API_Key_ຂອງ_Supabase_ບ່ອນນີ້';
+
+const bot = new Telegraf(BOT_TOKEN);
+const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+const app = express();
+
+// --- ໂຄ້ດ Telegram Bot ຂອງທ່ານ ---
+bot.start(async (ctx) => {
+    const telegramId = ctx.from.id.toString();
+    await supabase.from('users').upsert([{ telegram_id: telegramId }], { onConflict: 'telegram_id' });
+    ctx.reply('ຍິນດີຕ້ອນຮັບ! 🎉\nກົດປຸ່ມ "ເປີດແອັບ" ຢູ່ລຸ່ມຊ້າຍມືເພື່ອຊື້ຕົວເລກນຳໂຊກໄດ້ເລີຍ.');
+});
+
+bot.on('web_app_data', async (ctx) => {
+    const telegramId = ctx.from.id.toString();
+    const data = JSON.parse(ctx.webAppData.data.text()); 
+    
+    if (data.action === 'buy_number') {
+        const ticketNumber = data.number;
+        ctx.reply(`⏳ ກຳລັງກວດສອບໝາຍເລກ ${ticketNumber}...`);
+        
+        const { error } = await supabase.from('tickets').insert([{ ticket_number: ticketNumber, owner_telegram_id: telegramId }]);
+            
+        if (error) {
+            ctx.reply('❌ ຂໍອະໄພ, ຕົວເລກນີ້ຖືກຊື້ໄປແລ້ວ ກະລຸນາເລືອກໃໝ່.');
+        } else {
+            ctx.reply(`✅ ບິນຢັ້ງຢືນສຳເລັດ!\nທ່ານໄດ້ເປັນເຈົ້າຂອງໝາຍເລກ [ ${ticketNumber} ] ຮຽບຮ້ອຍແລ້ວ! 🎉`);
+        }
+    }
+});
+
+bot.launch();
+console.log('🚀 Telegram Bot ກຳລັງເຮັດວຽກ...');
+
+// --- ສ້າງ Web Server ຈຳລອງເພື່ອໃຫ້ Render ອະນຸມັດ ---
+app.get('/', (req, res) => {
+    res.send('Lucky Number Bot Backend is running successfully!');
+});
+
+// Render ຈະສົ່ງລະຫັດ Port ມາໃຫ້ເອງ, ຖ້າບໍ່ມີໃຫ້ໃຊ້ 3000
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => {
+    console.log(`🌐 Web Server ເປີດຢູ່ທີ່ພອດ ${PORT}`);
+});
