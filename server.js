@@ -201,8 +201,7 @@ app.get('/api/tickets/:id', async (req, res) => {
         const { data, error } = await supabase
             .from('tickets')
             .select('ticket_number')
-            .eq('owner_telegram_id', req.params.id)
-            .order('id', { ascending: false }); // ລຽງຈາກໃໝ່ລົງເກົ່າ
+            .eq('owner_telegram_id', req.params.id); // ສິ້ນສຸດແຄ່ນີ້ (ລຶບແຖວລຽງລຳດັບອອກ)
 
         if (error) throw error;
         res.json({ tickets: data || [] });
