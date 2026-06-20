@@ -10,6 +10,24 @@ const SUPABASE_KEY = 'sb_publishable_iDgnFosf3Q5Sc4gp0i1zxQ_Q6ac_lRh';
 const bot = new Telegraf(BOT_TOKEN);
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const app = express();
+// --- API ສຳລັບດຶງຍອດເງິນໄປສະແດງໜ້າແອັບ ---
+app.get('/api/balance/:id', async (req, res) => {
+    // ອະນຸຍາດໃຫ້ໜ້າເວັບ (Frontend) ສາມາດດຶງຂໍ້ມູນໄດ້
+    res.header("Access-Control-Allow-Origin", "*"); 
+    
+    try {
+        const { data } = await supabase
+            .from('users')
+            .select('wallet_balance')
+            .eq('telegram_id', req.params.id)
+            .single();
+            
+        // ຖ້າມີຂໍ້ມູນໃຫ້ສົ່ງຍອດເງິນກັບໄປ, ຖ້າບໍ່ມີໃຫ້ສົ່ງເລກ 0
+        res.json({ balance: data ? data.wallet_balance : 0 });
+    } catch (err) {
+        res.json({ balance: 0 });
+    }
+});
 
 // --- ໂຄ້ດ Telegram Bot ຂອງທ່ານ ---
 bot.start(async (ctx) => {
