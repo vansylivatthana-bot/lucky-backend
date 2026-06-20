@@ -121,7 +121,72 @@ bot.on('web_app_data', async (ctx) => {
         }
     }
 });
+// --- ລະບົບແອັດມິນເຕີມເງິນ (Admin Top-up) ---
+// ລັອກໄວ້ໃຫ້ສະເພາະ ID ຂອງທ່ານຜູ້ດຽວທີ່ສັ່ງເຕີມເງິນໄດ້
+const ADMIN_ID = '1774450602'; 
 
+bot.command('topup', async (ctx) => {
+    const senderId = ctx.from.id.toString();
+    
+    // ກວດສອບວ່າແມ່ນແອັດມິນຫຼືບໍ່
+    if (senderId !== ADMIN_ID) {
+        return ctx.reply('❌ ຂໍອະໄພ, ທ່ານບໍ່ມີສິດນຳໃຊ້ຄຳສັ່ງນີ້.');
+    }
+
+    // ແຍກຂໍ້ຄວາມເພື່ອເອົາ ID ລູກຄ້າ ແລະ ຈຳນວນເງິນ
+    const messageParts = ctx.message.text.split(' ');
+    
+    if (messageParts.length !== 3) {
+        return ctx.reply('⚠️ ຮູບແບບຄຳສັ່ງບໍ່ຖືກຕ້ອງ.\nວິທີໃຊ້: /topup [IDລູກຄ້າ] [ຈຳນວນເງິນ]\nຕົວຢ່າງ: /topup 123456789 50');
+    }
+
+    const targetId = messageParts[1];
+    const amountToAdd = parseFloat(messageParts[2]);
+
+    if (isNaN(amountToAdd) || amountToAdd <= 0) {
+        return ctx.reply('❌ ຈຳນວນເງິນບໍ່ຖືກຕ້ອງ ກະລຸນາປ້ອນຕົວເລກທີ່ຫຼາຍກວ່າ 0.');
+    }
+
+    try {
+        // 1. ດຶງຍອດເງິນປັດຈຸບັນຂອງລູກຄ້າມາກ່ອນ
+        const { data: userData, error: fetchError } = await supabase
+            .from('users')
+            .select('wallet_balance')
+            .eq('telegram_id', targetId)
+            .single();
+
+        if (fetchError || !userData) {
+            return ctx.reply('❌ ບໍ່ພົບ ID ລູກຄ້ານີ້ໃນລະບົບ (ລູກຄ້າຕ້ອງເຄີຍກົດ /start ກ່ອນ).');
+        }
+
+        // 2. ບວກເງິນເພີ່ມເຂົ້າໄປ
+        const newBalance = parseFloat(userData.wallet_balance) + amountToAdd;
+
+        // 3. ອັບເດດຍອດເງິນໃໝ່ລົງຖານຂໍ້ມູນ
+        const { error: updateError } = await supabase
+            .from('users')
+            .update({ wallet_balance: newBalance })
+            .eq('telegram_id', targetId);
+
+        if (updateError) throw updateError;
+
+        // 4. ແຈ້ງເຕືອນແອັດມິນ (ທ່ານ)
+        ctx.reply(`✅ ເຕີມເງິນສຳເລັດ!\n👤 ເຂົ້າ ID: ${targetId}\n💰 ຈຳນວນ: +${amountToAdd} USDT\n💳 ຍອດເງິນປັດຈຸບັນ: ${newBalance} USDT`);
+        
+        // 5. ສົ່ງຂໍ້ຄວາມໄປແຈ້ງເຕືອນລູກຄ້າອັດຕະໂນມັດ (ຖ້າເຕີມໃຫ້ຄົນອື່ນ)
+        if (targetId !== ADMIN_ID) {
+            try {
+                await bot.telegram.sendMessage(targetId, `🎉 ຍິນດີດ້ວຍ! ທ່ານໄດ້ຮັບການເຕີມເງິນຈຳນວນ ${amountToAdd} USDT.\n💰 ຍອດເງິນຄົງເຫຼືອ: ${newBalance} USDT\n\nກົດປຸ່ມເປີດແອັບຂ້າງລຸ່ມເພື່ອເລືອກຊື້ຕົວເລກໄດ້ເລີຍ!`);
+            } catch (err) {
+                console.log("ບໍ່ສາມາດສົ່ງແຈ້ງເຕືອນຫາລູກຄ້າໄດ້");
+            }
+        }
+
+    } catch (err) {
+        console.error("Topup Error:", err);
+        ctx.reply('❌ ເກີດຂໍ້ຜິດພາດໃນການເຕີມເງິນ ກະລຸນາລອງໃໝ່ພາຍຫຼັງ.');
+    }
+});
 bot.launch();
 console.log('🚀 Telegram Bot ກຳລັງເຮັດວຽກ...');
 
