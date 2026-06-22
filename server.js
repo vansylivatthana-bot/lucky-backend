@@ -33,21 +33,17 @@ app.get('/api/balance/:id', async (req, res) => {
 // --- ໂຄ້ດ Telegram Bot ຂອງທ່ານ ---
 bot.start(async (ctx) => {
     const telegramId = ctx.from.id.toString();
-    
-    // ບັນທຶກ ID ລົງຖານຂໍ້ມູນ
-    await supabase.from('users').upsert([{ telegram_id: telegramId }], { onConflict: 'telegram_id' });
-    
-    // --- ຈຸດສຳຄັນທີ່ປ່ຽນໃໝ່: ເອົາ ID ຫ້ອຍຕິດທ້າຍ URL ໄປເລີຍ ---
-    const appUrl = `https://vansylivatthana-bot.github.io/lucky-number-app/?userid=${telegramId}`;
+    const payload = ctx.startPayload; // ເອົາ ID ຂອງຜູ້ແນະນຳມາຈາກ Link
 
-    ctx.reply('ຍິນດີຕ້ອນຮັບ! 🎉\nກະລຸນາກົດປຸ່ມລຸ່ມນີ້ເພື່ອເປີດແອັບຊື້ຕົວເລກນຳໂຊກ:', {
-        reply_markup: {
-            keyboard: [
-                [{ text: "📲 ເປີດແອັບຊື້ຕົວເລກ", web_app: { url: appUrl } }]
-            ],
-            resize_keyboard: true
-        }
-    });
+    // 1. ບັນທຶກຜູ້ໃຊ້ໃໝ່ ແລະ ຜູ້ແນະນຳ (ຖ້າມີ)
+    await supabase.from('users').upsert([{ 
+        telegram_id: telegramId,
+        referrer_id: payload || null 
+    }], { onConflict: 'telegram_id' });
+
+    // 2. ສົ່ງ Link ແນະນຳໃຫ້ລູກຄ້າ
+    const referralLink = `https://t.me/LuckyNumbervip_bot?start=${telegramId}`;
+    ctx.reply(`ຍິນດີຕ້ອນຮັບ! ບອກຕໍ່ໝູ່ເພື່ອຮັບເງິນລາງວັນ!\n\n🔗 Link ຂອງເຈົ້າ: ${referralLink}`);
 });
 
 bot.on('web_app_data', async (ctx) => {
