@@ -1,6 +1,6 @@
 const { Telegraf } = require('telegraf');
 const { createClient } = require('@supabase/supabase-js');
-const express = require('express'); // ເພີ່ມ Express ເຂົ້າມາສຳລັບ Render
+const express = require('express'); 
 
 // ໃສ່ລະຫັດຂອງທ່ານບ່ອນນີ້
 const BOT_TOKEN = '8921585286:AAEKu2mVEQGAGB_9RBKCqMnnRnlrVE0aGCI';
@@ -13,9 +13,7 @@ const app = express();
 
 // --- API ສຳລັບດຶງຍອດເງິນໄປສະແດງໜ້າແອັບ ---
 app.get('/api/balance/:id', async (req, res) => {
-    // ອະນຸຍາດໃຫ້ໜ້າເວັບ (Frontend) ສາມາດດຶງຂໍ້ມູນໄດ້
     res.header("Access-Control-Allow-Origin", "*"); 
-    
     try {
         const { data } = await supabase
             .from('users')
@@ -23,27 +21,55 @@ app.get('/api/balance/:id', async (req, res) => {
             .eq('telegram_id', req.params.id)
             .single();
             
-        // ຖ້າມີຂໍ້ມູນໃຫ້ສົ່ງຍອດເງິນກັບໄປ, ຖ້າບໍ່ມີໃຫ້ສົ່ງເລກ 0
         res.json({ balance: data ? data.wallet_balance : 0 });
     } catch (err) {
         res.json({ balance: 0 });
     }
 });
 
+// --- API ສຳລັບດຶງຂໍ້ມູນນາຍໜ້າ (ຈຳນວນໝູ່ທີ່ແນະນຳ) ---
+app.get('/api/referral-stats/:id', async (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    try {
+        const { count } = await supabase
+            .from('users')
+            .select('*', { count: 'exact' })
+            .eq('referrer_id', req.params.id);
+            
+        res.json({ friends_count: count || 0 });
+    } catch (err) {
+        res.json({ friends_count: 0 });
+    }
+});
+
 // --- ໂຄ້ດ Telegram Bot ຂອງທ່ານ ---
 bot.start(async (ctx) => {
     const telegramId = ctx.from.id.toString();
-    const payload = ctx.startPayload; // ເອົາ ID ຂອງຜູ້ແນະນຳມາຈາກ Link
+    const payload = ctx.startPayload; // ຮັບ ID ຜູ້ແນະນຳຈາກ Link (ຖ້າມີ)
+    
+    // ກວດສອບກ່ອນວ່າມີ user ນີ້ແລ້ວຫຼືບໍ່ ເພື່ອບໍ່ໃຫ້ຂຽນທັບຜູ້ແນະນຳເກົ່າ
+    const { data: existingUser } = await supabase.from('users').select('telegram_id').eq('telegram_id', telegramId).single();
 
-    // 1. ບັນທຶກຜູ້ໃຊ້ໃໝ່ ແລະ ຜູ້ແນະນຳ (ຖ້າມີ)
-    await supabase.from('users').upsert([{ 
-        telegram_id: telegramId,
-        referrer_id: payload || null 
-    }], { onConflict: 'telegram_id' });
+    if (!existingUser) {
+        // ຖ້າເປັນລູກຄ້າໃໝ່, ໃຫ້ບັນທຶກລົງຖານຂໍ້ມູນ ພ້ອມກັບ ID ຜູ້ແນະນຳ
+        const userData = { telegram_id: telegramId };
+        if (payload && payload !== telegramId) {
+            userData.referrer_id = payload;
+        }
+        await supabase.from('users').insert([userData]);
+    }
+    
+    const appUrl = `https://vansylivatthana-bot.github.io/lucky-number-app/?userid=${telegramId}`;
+    const referralLink = `https://t.me/LuckyNumbervip_bot?start=${telegramId}`; // Link ແນະນຳຂອງລູກຄ້າຄົນນີ້
 
-    // 2. ສົ່ງ Link ແນະນຳໃຫ້ລູກຄ້າ
-    const referralLink = `https://t.me/LuckyNumbervip_bot?start=${telegramId}`;
-    ctx.reply(`ຍິນດີຕ້ອນຮັບ! ບອກຕໍ່ໝູ່ເພື່ອຮັບເງິນລາງວັນ!\n\n🔗 Link ຂອງເຈົ້າ: ${referralLink}`);
+    ctx.reply(`ຍິນດີຕ້ອນຮັບ! 🎉\n\n🤝 ຊວນໝູ່ມາຊື້ເລກ ຮັບທັນທີ 5% ຂອງຍອດຊື້!\n🔗 Link ແນະນຳຂອງທ່ານ:\n${referralLink}\n\nກະລຸນາກົດປຸ່ມລຸ່ມນີ້ເພື່ອເປີດແອັບຊື້ຕົວເລກນຳໂຊກ:`, {
+        reply_markup: {
+            keyboard: [
+                [{ text: "📲 ເປີດແອັບຊື້ຕົວເລກ", web_app: { url: appUrl } }]
+            ],
+            resize_keyboard: true
+        }
+    });
 });
 
 bot.on('web_app_data', async (ctx) => {
@@ -66,7 +92,6 @@ bot.on('web_app_data', async (ctx) => {
                 return ctx.reply('❌ ບໍ່ສາມາດດຶງຂໍ້ມູນກະເປົາເງິນໄດ້ ກະລຸນາພິມ /start ໃໝ່ອີກຄັ້ງ.');
             }
 
-            // ຖ້າຍອດເງິນໜ້ອຍກວ່າ 10 USDT ໃຫ້ປະຕິເສດການຂາຍ
             if (userData.wallet_balance < 10) {
                 return ctx.reply(`❌ ຍອດເງິນຂອງທ່ານບໍ່ພຽງພໍ.\n(ຍອດຄົງເຫຼືອ: ${userData.wallet_balance} USDT)\nກະລຸນາເຕີມເງິນເຂົ້າກະເປົາຢ່າງໜ້ອຍ 10 USDT ເພື່ອສັ່ງຊື້.`);
             }
@@ -83,9 +108,8 @@ bot.on('web_app_data', async (ctx) => {
             }
 
             // ----- ຂັ້ນຕອນທີ 3: ຕັດເງິນ ແລະ ບັນທຶກຕົວເລກ -----
-            const newBalance = userData.wallet_balance - 10; // ຫັກເງິນ 10 USDT
+            const newBalance = userData.wallet_balance - 10; 
             
-            // ອັບເດດຍອດເງິນໃໝ່ລົງຕາຕະລາງ users
             const { error: updateError } = await supabase
                 .from('users')
                 .update({ wallet_balance: newBalance })
@@ -93,13 +117,36 @@ bot.on('web_app_data', async (ctx) => {
                 
             if (updateError) throw updateError;
 
-            // ກຽມວັນທີ ແລະ ເວລາ (UTC+7)
+            // --- ລະບົບຄິດໄລ່ຄ່ານາຍໜ້າ (Affiliate 5%) ---
+            const { data: userProfile } = await supabase.from('users').select('referrer_id').eq('telegram_id', telegramId).single();
+
+            if (userProfile && userProfile.referrer_id) {
+                const ticketPrice = 10; 
+                const commissionRate = 0.05; 
+                const commission = ticketPrice * commissionRate; // ຄິດໄລ່ເປັນ 0.5 USDT ຕໍ່ປີ້
+                
+                const { data: referrerData } = await supabase.from('users').select('wallet_balance').eq('telegram_id', userProfile.referrer_id).single();
+                
+                if (referrerData) {
+                    const newReferrerBalance = parseFloat(referrerData.wallet_balance) + commission;
+                    
+                    await supabase.from('users')
+                        .update({ wallet_balance: newReferrerBalance })
+                        .eq('telegram_id', userProfile.referrer_id);
+                        
+                    try {
+                        await bot.telegram.sendMessage(userProfile.referrer_id, 
+                            `💰 ຍິນດີດ້ວຍ! ໝູ່ທີ່ທ່ານແນະນຳໄດ້ຊື້ເລກ.\nທ່ານໄດ້ຮັບຄ່ານາຍໜ້າ 5% ເປັນເງິນ: +${commission} USDT.\nຍອດລວມປັດຈຸບັນ: ${newReferrerBalance} USDT`);
+                    } catch (e) { console.log("ບໍ່ສາມາດແຈ້ງເຕືອນຜູ້ແນະນຳໄດ້"); }
+                }
+            }
+            // ----------------------------------------
+
             const now = new Date();
             now.setHours(now.getHours() + 7); 
             const currentDate = now.toISOString().split('T')[0];
             const currentTime = now.toISOString().split('T')[1].substring(0, 8);
 
-            // ບັນທຶກຕົວເລກລົງຕາຕະລາງ tickets
             const { error: insertError } = await supabase.from('tickets').insert([{ 
                 ticket_number: ticketNumber, 
                 owner_telegram_id: telegramId,
@@ -109,7 +156,6 @@ bot.on('web_app_data', async (ctx) => {
             
             if (insertError) throw insertError;
 
-            // ອອກບິນຮັບເງິນ
             ctx.reply(`✅ ບິນຢັ້ງຢືນສຳເລັດ!\n\n🎟️ ໝາຍເລກຂອງທ່ານ: [ ${ticketNumber} ]\n💸 ຍອດເງິນຄົງເຫຼືອ: ${newBalance} USDT\n\nຂໍໃຫ້ໂຊກດີໃນງວດນີ້! 🎉`);
 
         } catch (err) {
@@ -120,18 +166,15 @@ bot.on('web_app_data', async (ctx) => {
 });
 
 // --- ລະບົບແອັດມິນເຕີມເງິນ (Admin Top-up) ---
-// ລັອກໄວ້ໃຫ້ສະເພາະ ID ຂອງທ່ານຜູ້ດຽວທີ່ສັ່ງເຕີມເງິນໄດ້
 const ADMIN_ID = '1774450602'; 
 
 bot.command('topup', async (ctx) => {
     const senderId = ctx.from.id.toString();
     
-    // ກວດສອບວ່າແມ່ນແອັດມິນຫຼືບໍ່
     if (senderId !== ADMIN_ID) {
         return ctx.reply('❌ ຂໍອະໄພ, ທ່ານບໍ່ມີສິດນຳໃຊ້ຄຳສັ່ງນີ້.');
     }
 
-    // ແຍກຂໍ້ຄວາມເພື່ອເອົາ ID ລູກຄ້າ ແລະ ຈຳນວນເງິນ
     const messageParts = ctx.message.text.split(' ');
     
     if (messageParts.length !== 3) {
@@ -146,7 +189,6 @@ bot.command('topup', async (ctx) => {
     }
 
     try {
-        // 1. ດຶງຍອດເງິນປັດຈຸບັນຂອງລູກຄ້າມາກ່ອນ
         const { data: userData, error: fetchError } = await supabase
             .from('users')
             .select('wallet_balance')
@@ -157,10 +199,8 @@ bot.command('topup', async (ctx) => {
             return ctx.reply('❌ ບໍ່ພົບ ID ລູກຄ້ານີ້ໃນລະບົບ (ລູກຄ້າຕ້ອງເຄີຍກົດ /start ກ່ອນ).');
         }
 
-        // 2. ບວກເງິນເພີ່ມເຂົ້າໄປ
         const newBalance = parseFloat(userData.wallet_balance) + amountToAdd;
 
-        // 3. ອັບເດດຍອດເງິນໃໝ່ລົງຖານຂໍ້ມູນ
         const { error: updateError } = await supabase
             .from('users')
             .update({ wallet_balance: newBalance })
@@ -168,10 +208,8 @@ bot.command('topup', async (ctx) => {
 
         if (updateError) throw updateError;
 
-        // 4. ແຈ້ງເຕືອນແອັດມິນ (ທ່ານ)
         ctx.reply(`✅ ເຕີມເງິນສຳເລັດ!\n👤 ເຂົ້າ ID: ${targetId}\n💰 ຈຳນວນ: +${amountToAdd} USDT\n💳 ຍອດເງິນປັດຈຸບັນ: ${newBalance} USDT`);
         
-        // 5. ສົ່ງຂໍ້ຄວາມໄປແຈ້ງເຕືອນລູກຄ້າອັດຕະໂນມັດ (ຖ້າເຕີມໃຫ້ຄົນອື່ນ)
         if (targetId !== ADMIN_ID) {
             try {
                 await bot.telegram.sendMessage(targetId, `🎉 ຍິນດີດ້ວຍ! ທ່ານໄດ້ຮັບການເຕີມເງິນຈຳນວນ ${amountToAdd} USDT.\n💰 ຍອດເງິນຄົງເຫຼືອ: ${newBalance} USDT\n\nກົດປຸ່ມເປີດແອັບຂ້າງລຸ່ມເພື່ອເລືອກຊື້ຕົວເລກໄດ້ເລີຍ!`);
@@ -187,16 +225,13 @@ bot.command('topup', async (ctx) => {
 });
 
 // --- ລະບົບອອກລາງວັນ (Prize Draw) ---
-// ສະເພາະແອັດມິນເທົ່ານັ້ນທີ່ສາມາດສັ່ງອອກລາງວັນໄດ້
 bot.command('draw', async (ctx) => {
     const senderId = ctx.from.id.toString();
 
-    // ກວດສອບວ່າແມ່ນແອັດມິນຫຼືບໍ່
     if (senderId !== ADMIN_ID) {
         return ctx.reply('❌ ຂໍອະໄພ, ທ່ານບໍ່ມີສິດນຳໃຊ້ຄຳສັ່ງນີ້.');
     }
 
-    // ແຍກຂໍ້ຄວາມເພື່ອເອົາຕົວເລກທີ່ຖືກລາງວັນ
     const messageParts = ctx.message.text.split(' ');
     
     if (messageParts.length !== 2) {
@@ -205,13 +240,11 @@ bot.command('draw', async (ctx) => {
 
     const winningNumber = messageParts[1];
 
-    // ກວດສອບວ່າພິມຄົບ 5 ຫຼັກຫຼືບໍ່
     if (winningNumber.length !== 5 || isNaN(winningNumber)) {
         return ctx.reply('❌ ກະລຸນາປ້ອນຕົວເລກໃຫ້ຄົບ 5 ຫຼັກ.');
     }
 
     try {
-        // 1. ຄົ້ນຫາຜູ້ທີ່ຊື້ເລກນີ້ຈາກຖານຂໍ້ມູນ (ຕາຕະລາງ tickets)
         const { data: winningTickets, error } = await supabase
             .from('tickets')
             .select('owner_telegram_id')
@@ -219,19 +252,16 @@ bot.command('draw', async (ctx) => {
 
         if (error) throw error;
 
-        // ຖ້າບໍ່ມີຄົນຊື້ເລກນີ້ເລີຍ
         if (!winningTickets || winningTickets.length === 0) {
             return ctx.reply(`ປະກາດຜົນລາງວັນ: [ ${winningNumber} ] 🏆\n\n😔 ງວດນີ້ບໍ່ມີລູກຄ້າຖືກລາງວັນເລີຍ.`);
         }
 
-        // 2. ນັບຈຳນວນຜູ້ໂຊກດີ
         const winnersMap = {};
         winningTickets.forEach(ticket => {
             const id = ticket.owner_telegram_id;
-            winnersMap[id] = (winnersMap[id] || 0) + 1; // ບວກຈຳນວນປີ້ທີ່ຖືກ
+            winnersMap[id] = (winnersMap[id] || 0) + 1; 
         });
 
-        // 3. ສົ່ງຂໍ້ຄວາມແຈ້ງເຕືອນຫາຜູ້ໂຊກດີແຕ່ລະຄົນໂດຍກົງ
         let successCount = 0;
         for (const [userId, count] of Object.entries(winnersMap)) {
             try {
@@ -245,7 +275,6 @@ bot.command('draw', async (ctx) => {
             }
         }
 
-        // 4. ສະຫຼຸບລາຍງານໃຫ້ແອັດມິນຊາບ
         ctx.reply(`✅ ອອກລາງວັນສຳເລັດ: [ ${winningNumber} ] 🏆\n\nພົບຜູ້ຖືກລາງວັນທັງໝົດ ${Object.keys(winnersMap).length} ຄົນ (ລວມ ${winningTickets.length} ປີ້).\nສົ່ງແຈ້ງເຕືອນຫາລູກຄ້າສຳເລັດແລ້ວ ${successCount} ຄົນ.`);
 
     } catch (err) {
@@ -257,12 +286,10 @@ bot.command('draw', async (ctx) => {
 bot.launch();
 console.log('🚀 Telegram Bot ກຳລັງເຮັດວຽກ...');
 
-// --- ສ້າງ Web Server ຈຳລອງເພື່ອໃຫ້ Render ອະນຸມັດ ---
 app.get('/', (req, res) => {
     res.send('Lucky Number Bot Backend is running successfully!');
 });
 
-// --- API ສຳລັບດຶງປະຫວັດການຊື້ (My Tickets) ---
 app.get('/api/tickets/:id', async (req, res) => {
     res.header("Access-Control-Allow-Origin", "*"); 
     try {
@@ -279,7 +306,6 @@ app.get('/api/tickets/:id', async (req, res) => {
     }
 });
 
-// Render ຈະສົ່ງລະຫັດ Port ມາໃຫ້ເອງ, ຖ້າບໍ່ມີໃຫ້ໃຊ້ 3000
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`🌐 Web Server ເປີດຢູ່ທີ່ພອດ ${PORT}`);
