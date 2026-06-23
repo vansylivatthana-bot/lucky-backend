@@ -290,13 +290,28 @@ app.get('/', (req, res) => {
     res.send('Lucky Number Bot Backend is running successfully!');
 });
 
+// --- API ສຳລັບດຶງປະຫວັດການຊື້ (ສະແດງສະເພາະຂອງອາທິດປັດຈຸບັນ) ---
 app.get('/api/tickets/:id', async (req, res) => {
     res.header("Access-Control-Allow-Origin", "*"); 
     try {
+        // 1. ຄິດໄລ່ຫາ "ວັນຈັນ" ຂອງອາທິດນີ້ (ປັບເວລາໃຫ້ກົງກັບລາວ UTC+7)
+        const now = new Date();
+        now.setHours(now.getHours() + 7); 
+        
+        const dayOfWeek = now.getDay(); // 0 = ວັນອາທິດ, 1 = ວັນຈັນ, ..., 6 = ວັນເສົາ
+        // ຖ້າມື້ນີ້ແມ່ນວັນອາທິດ ໃຫ້ຖອຍຫຼັງໄປ 6 ມື້ເພື່ອຫາວັນຈັນ, ຖ້າບໍ່ແມ່ນໃຫ້ຖອຍຕາມສູດ
+        const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; 
+        
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - diffToMonday);
+        const startOfWeekStr = monday.toISOString().split('T')[0]; // ຈະໄດ້ວັນທີຮູບແບບ YYYY-MM-DD ຂອງວັນຈັນອາທິດນີ້
+
+        // 2. ດຶງຂໍ້ມູນສະເພາະປີ້ທີ່ Date_book "ໃຫຍ່ກວ່າຫຼືເທົ່າກັບ" ວັນຈັນຂອງອາທິດນີ້
         const { data, error } = await supabase
             .from('tickets')
             .select('ticket_number')
-            .eq('owner_telegram_id', req.params.id); 
+            .eq('owner_telegram_id', req.params.id)
+            .gte('Date_book', startOfWeekStr); // .gte ໝາຍເຖິງ Greater than or equal
 
         if (error) throw error;
         res.json({ tickets: data || [] });
