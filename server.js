@@ -198,7 +198,11 @@ bot.command('draw', async (ctx) => {
     } catch (err) { ctx.reply('❌ ເກີດຂໍ້ຜິດພາດ.'); }
 });
 
-bot.launch();
+// ແທນທີ່ bot.launch(); ດ້ວຍ webhook setup
+const WEBHOOK_URL = 'https://lucky-backend-api.onrender.com/webhook';
+bot.telegram.setWebhook(WEBHOOK_URL);
+
+app.use(bot.webhookCallback('/webhook'));
 console.log('🚀 Telegram Bot ກຳລັງເຮັດວຽກ...');
 
 app.get('/', (req, res) => { res.send('Lucky Number Bot Backend is running successfully!'); });
