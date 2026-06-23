@@ -3,7 +3,7 @@ const { createClient } = require('@supabase/supabase-js');
 const express = require('express'); 
 
 // ໃສ່ລະຫັດຂອງທ່ານບ່ອນນີ້
-const BOT_TOKEN = '8921585286:AAEKu2mVEQGAGB_9RBKCqMnnRnlrVE0aGCI';
+const BOT_TOKEN = '8921585286:AAFJ-jZk1GBoSpJSJwbhuqTG7iqm-aQuxlE';
 const SUPABASE_URL = 'https://fsrpcwrhskhnglrmutsz.supabase.co';
 const SUPABASE_KEY = 'sb_secret_CGMwhxFtwz39gMzZmVEfgg_gk4BGK4e';
 
