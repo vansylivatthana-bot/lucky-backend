@@ -59,7 +59,7 @@ app.get('/api/prize-pool', async (req, res) => {
         if (error) throw error;
 
         const totalTickets = count || 0;
-        const totalSales = totalTickets * 10; // ປີ້ລະ 10 USDT
+        const totalSales = totalTickets * 5; // ປີ້ລະ 5 USDT
         
         // 2. ຄິດໄລ່ກອງທຶນລາງວັນ (80% ຂອງຍອດຂາຍ)
         const prizeFund = totalSales * 0.80;
@@ -185,19 +185,19 @@ bot.on('web_app_data', async (ctx) => {
             const { data: userData, error: userError } = await supabase.from('users').select('wallet_balance').eq('telegram_id', telegramId).single();
 
             if (userError || !userData) return ctx.reply('❌ ບໍ່ສາມາດດຶງຂໍ້ມູນກະເປົາເງິນໄດ້ ກະລຸນາພິມ /start ໃໝ່ອີກຄັ້ງ.');
-            if (userData.wallet_balance < 10) return ctx.reply(`❌ ຍອດເງິນຂອງທ່ານບໍ່ພຽງພໍ.\n(ຍອດຄົງເຫຼືອ: ${userData.wallet_balance} USDT)`);
+            if (userData.wallet_balance < 5) return ctx.reply(`❌ ຍອດເງິນຂອງທ່ານບໍ່ພຽງພໍ.\n(ຍອດຄົງເຫຼືອ: ${userData.wallet_balance} USDT)`);
 
             const { data: existTicket } = await supabase.from('tickets').select('ticket_number').eq('ticket_number', ticketNumber).single();
             if (existTicket) return ctx.reply('❌ ຂໍອະໄພ, ຕົວເລກນີ້ຖືກຊື້ໄປແລ້ວ ກະລຸນາເລືອກຕົວເລກໃໝ່.');
 
-            const newBalance = userData.wallet_balance - 10; 
+            const newBalance = userData.wallet_balance - 5; 
             const { error: updateError } = await supabase.from('users').update({ wallet_balance: newBalance }).eq('telegram_id', telegramId);
             if (updateError) throw updateError;
 
             // --- ລະບົບ Affiliate 5% ---
             const { data: userProfile } = await supabase.from('users').select('referrer_id').eq('telegram_id', telegramId).single();
             if (userProfile && userProfile.referrer_id) {
-                const commission = 10 * 0.05; 
+                const commission = 5 * 0.05; 
                 const { data: referrerData } = await supabase.from('users').select('wallet_balance').eq('telegram_id', userProfile.referrer_id).single();
                 if (referrerData) {
                     const newReferrerBalance = parseFloat(referrerData.wallet_balance) + commission;
