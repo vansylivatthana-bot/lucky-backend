@@ -36,48 +36,49 @@ app.get('/api/referral-stats/:id', async (req, res) => {
     } catch (err) { res.json({ friends_count: 0 }); }
 });
 
-// --- API ໃໝ່: ຄິດໄລ່ ແລະ ດຶງມູນຄ່າເງິນລາງວັນປະຈຳອາທິດ ---
-app.get('/api/prize-pool', async (req, res) => {
+// --- API ໃໝ່: ລວມສູນຂໍ້ມູນທຸກຢ່າງໃນ Request ດຽວ (ຫຼຸດພາລະ Server) ---
+app.get('/api/init-app/:id', async (req, res) => {
     res.header("Access-Control-Allow-Origin", "*");
     try {
+        const userId = req.params.id;
+
+        // 1. ດຶງເວລາລາວ ແລະ ຫາວັນຈັນ
         const localTimeStr = new Date().toLocaleString("en-US", {timeZone: "Asia/Vientiane"});
         const now = new Date(localTimeStr);
-        
         const dayOfWeek = now.getDay();
         const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; 
-        
         const monday = new Date(now);
         monday.setDate(now.getDate() - diffToMonday);
         const startOfWeekStr = monday.toISOString().split('T')[0];
 
-        // 1. นັນຈຳນວນປີ້ທີ່ຂາຍໄດ້ທັງໝົດໃນອາທິດນີ້
-        const { count, error } = await supabase
-            .from('tickets')
-            .select('*', { count: 'exact', head: true })
-            .gte('Date_book', startOfWeekStr);
+        // 2. ດຶງຂໍ້ມູນທຸກຢ່າງຈາກ Supabase ພ້ອມກັນ
+        const [userRes, ticketCountRes, myTicketsRes, friendsRes] = await Promise.all([
+            supabase.from('users').select('wallet_balance').eq('telegram_id', userId).single(),
+            supabase.from('tickets').select('*', { count: 'exact', head: true }).gte('Date_book', startOfWeekStr),
+            supabase.from('tickets').select('ticket_number').eq('owner_telegram_id', userId).gte('Date_book', startOfWeekStr),
+            supabase.from('users').select('*', { count: 'exact' }).eq('referrer_id', userId)
+        ]);
 
-        if (error) throw error;
-
-        const totalTickets = count || 0;
+        // 3. ຄິດໄລ່ລາງວັນ
+        const totalTickets = ticketCountRes.count || 0;
         const totalSales = totalTickets * 5; // ປີ້ລະ 5 USDT
-        
-        // 2. ຄິດໄລ່ກອງທຶນລາງວັນ (80% ຂອງຍອດຂາຍ)
         const prizeFund = totalSales * 0.80;
-
-        // 3. ຈັດສັນລາງວັນຕາມໂຄງສ້າງ
-        const prize1 = prizeFund * 0.30; // ລາງວັນທີ 1 (1 ລາງວັນ)
-        const prize2 = prizeFund * 0.20 / 3; // ລາງວັນທີ 2 (ຫານ 3)
-        const prize3 = prizeFund * 0.40 / 23; // ລາງວັນທີ 3 (ຫານ 23)
+        const prize1 = prizeFund * 0.30;
+        const prize2 = prizeFund * 0.20 / 3;
+        const prize3 = prizeFund * 0.40 / 23;
 
         res.json({
-            total_sales: totalSales,
-            prize_fund: prizeFund,
-            prize_1: prize1.toFixed(2),
-            prize_2: prize2.toFixed(2),
-            prize_3: prize3.toFixed(2)
+            balance: userRes.data ? userRes.data.wallet_balance : 0,
+            friends_count: friendsRes.count || 0,
+            tickets: myTicketsRes.data || [],
+            prizes: {
+                prize_1: prize1.toFixed(2),
+                prize_2: prize2.toFixed(2),
+                prize_3: prize3.toFixed(2)
+            }
         });
     } catch (err) {
-        res.json({ prize_fund: 0, prize_1: "0.00", prize_2: "0.00", prize_3: "0.00" });
+        res.json({ balance: 0, friends_count: 0, tickets: [], prizes: { prize_1: "0.00", prize_2: "0.00", prize_3: "0.00" } });
     }
 });
 
