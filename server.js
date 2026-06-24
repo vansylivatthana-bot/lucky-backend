@@ -11,7 +11,6 @@ const bot = new Telegraf(BOT_TOKEN);
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const app = express();
 
-// ອະນຸຍາດໃຫ້ Express ອ່ານຂໍ້ມູນ JSON ໄດ້ (ສຳຄັນສຳລັບ Webhook)
 app.use(express.json());
 
 // ==========================================
@@ -42,7 +41,6 @@ app.get('/api/init-app/:id', async (req, res) => {
     try {
         const userId = req.params.id;
 
-        // 1. ດຶງເວລາລາວ ແລະ ຫາວັນຈັນ
         const localTimeStr = new Date().toLocaleString("en-US", {timeZone: "Asia/Vientiane"});
         const now = new Date(localTimeStr);
         const dayOfWeek = now.getDay();
@@ -51,7 +49,6 @@ app.get('/api/init-app/:id', async (req, res) => {
         monday.setDate(now.getDate() - diffToMonday);
         const startOfWeekStr = monday.toISOString().split('T')[0];
 
-        // 2. ດຶງຂໍ້ມູນທຸກຢ່າງຈາກ Supabase ພ້ອມກັນ
         const [userRes, ticketCountRes, myTicketsRes, friendsRes] = await Promise.all([
             supabase.from('users').select('wallet_balance').eq('telegram_id', userId).single(),
             supabase.from('tickets').select('*', { count: 'exact', head: true }).gte('Date_book', startOfWeekStr),
@@ -59,9 +56,8 @@ app.get('/api/init-app/:id', async (req, res) => {
             supabase.from('users').select('*', { count: 'exact' }).eq('referrer_id', userId)
         ]);
 
-        // 3. ຄິດໄລ່ລາງວັນ
         const totalTickets = ticketCountRes.count || 0;
-        const totalSales = totalTickets * 5; // ປີ້ລະ 5 USDT
+        const totalSales = totalTickets * 5; 
         const prizeFund = totalSales * 0.80;
         const prize1 = prizeFund * 0.30;
         const prize2 = prizeFund * 0.20 / 3;
@@ -88,10 +84,8 @@ app.get('/api/weekly-stats', async (req, res) => {
     try {
         const localTimeStr = new Date().toLocaleString("en-US", {timeZone: "Asia/Vientiane"});
         const now = new Date(localTimeStr);
-        
         const dayOfWeek = now.getDay();
         const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; 
-        
         const monday = new Date(now);
         monday.setDate(now.getDate() - diffToMonday);
         const startOfWeekStr = monday.toISOString().split('T')[0];
@@ -154,7 +148,7 @@ bot.start(async (ctx) => {
     const referralLink = `https://t.me/LuckyNumbervip_bot?start=${telegramId}`; 
     const channelLink = `https://t.me/LuckyNumberVIP_Channel`; 
 
-    ctx.reply(`ຍິນດີຕ້ອນຮັບສູ່ Lucky Number VIP! 🎉\n\n📢 ຕິດຕາມຜົນລາງວັນໄດ້ທີ່ Channel:\n👉 ${channelLink}\n\n🤝 ชວນໝູ່ມາຊື້ເລກ ຮັບທັນທີ 10% ຂອງຍອດຊື້!\n🔗 Link ແນະນຳຂອງທ່ານ:\n${referralLink}\n\nກະລຸນາກົດປຸ່ມລຸ່ມນີ້ເພື່ອເປີດແອັບ:`, {
+    ctx.reply(`ຍິນດີຕ້ອນຮັບສູ່ Lucky Number VIP! 🎉\n\n📢 ຕິດຕາມຜົນລາງວັນໄດ້ທີ່ Channel:\n👉 ${channelLink}\n\n🤝 ຊວນໝູ່ມາຊື້ເລກ ຮັບທັນທີ 10% ຂອງຍອດຊື້!\n🔗 Link ແນະນຳຂອງທ່ານ:\n${referralLink}\n\nກະລຸນາກົດປຸ່ມລຸ່ມນີ້ເພື່ອເປີດແອັບ:`, {
         reply_markup: {
             keyboard: [ [{ text: "📲 ເປີດແອັບຊື້ຕົວເລກ", web_app: { url: appUrl } }] ],
             resize_keyboard: true
@@ -169,16 +163,15 @@ bot.on('web_app_data', async (ctx) => {
     if (data.action === 'buy_number') {
         const ticketNumber = data.number;
 
-        // --- ລະບົບປິດຮັບຊື້ເວລາ 12:00 ວັນອາທິດ (ແກ້ໄຂໃຫ້ຖືກຕ້ອງ) ---
+        // --- ລະບົບປິດຮັບຊື້ເວລາ 12:00 ວັນອາທິດ ---
         const localTimeStr = new Date().toLocaleString("en-US", {timeZone: "Asia/Vientiane"});
         const now = new Date(localTimeStr);
-        const currentDay = now.getDay(); // 0 = ວັນອາທິດ
+        const currentDay = now.getDay(); 
         const currentHour = now.getHours(); 
 
         if (currentDay === 0 && currentHour >= 12) {
-            return ctx.reply('❌ ຂໍອະໄພ, ລະບົບປິດຮັບຊື້ແລ້ວສຳລັບອາທິດນີ້.\n\n⏰ ລະບົບຈະເປີດຮັບຊື້ໃໝ່ໃນວັນຈັນ ເວലാ 00:00 ໂມງ.');
+            return ctx.reply('❌ ຂໍອະໄພ, ລະບົບປິດຮັບຊື້ແລ້ວສຳລັບອາທິດນີ້.\n\n⏰ ລະບົບຈະເປີດຮັບຊື້ໃໝ່ໃນວັນຈັນ ເວລາ 00:00 ໂມງ.');
         }
-        // ------------------------------------
 
         ctx.reply(`⏳ ກຳລັງກວດສອບຍອດເງິນ ແລະ ໝາຍເລກ ${ticketNumber}...`);
         
@@ -195,10 +188,10 @@ bot.on('web_app_data', async (ctx) => {
             const { error: updateError } = await supabase.from('users').update({ wallet_balance: newBalance }).eq('telegram_id', telegramId);
             if (updateError) throw updateError;
 
-            // --- ລະບົບ Affiliate 10% (ປັບປຸງໃໝ່) ---
+            // --- ລະບົບ Affiliate 10% ---
             const { data: userProfile } = await supabase.from('users').select('referrer_id').eq('telegram_id', telegramId).single();
             if (userProfile && userProfile.referrer_id) {
-                const commission = 5 * 0.10; // ປ່ຽນເປັນ 10% (5 USDT x 0.10 = 0.5 USDT ຕໍ່ປີ້)
+                const commission = 5 * 0.10; 
                 const { data: referrerData } = await supabase.from('users').select('wallet_balance').eq('telegram_id', userProfile.referrer_id).single();
                 if (referrerData) {
                     const newReferrerBalance = parseFloat(referrerData.wallet_balance) + commission;
@@ -210,9 +203,13 @@ bot.on('web_app_data', async (ctx) => {
                 }
             }
 
-            // --- ບັນທຶກປີ້ເຂົ້າຖານຂໍ້ມູນ ---
-            const currentDate = now.toISOString().split('T')[0];
-            const currentTime = now.toISOString().split('T')[1].substring(0, 8);
+            // --- ບັນທຶກປີ້ເຂົ້າຖານຂໍ້ມູນ (ແກ້ໄຂເວລາປະເທດລາວໃຫ້ແມ້ນຍຳ) ---
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const currentDate = `${year}-${month}-${day}`;
+            
+            const currentTime = now.toTimeString().split(' ')[0]; // ໄດ້ຮູບແບບ HH:MM:SS ໂມງລາວ
 
             const { error: insertError } = await supabase.from('tickets').insert([{ 
                 ticket_number: ticketNumber, owner_telegram_id: telegramId, Date_book: currentDate, Time_book: currentTime
@@ -243,7 +240,7 @@ bot.command('topup', async (ctx) => {
     
     const targetId = messageParts[1];
     const amountToAdd = parseFloat(messageParts[2]);
-    if (isNaN(amountToAdd) || amountToAdd <= 0) return ctx.reply('❌ จຳນວນເງິນບໍ່ຖືກຕ້ອງ.');
+    if (isNaN(amountToAdd) || amountToAdd <= 0) return ctx.reply('❌ ຈຳນວນເງິນບໍ່ຖືກຕ້ອງ.');
 
     try {
         const { data: userData, error: fetchError } = await supabase.from('users').select('wallet_balance').eq('telegram_id', targetId).single();
@@ -285,7 +282,7 @@ bot.command('draw', async (ctx) => {
         let successCount = 0;
         for (const [userId, count] of Object.entries(winnersMap)) {
             try {
-                await bot.telegram.sendMessage(userId, `🎉 ຊົມເຊີຍ!!! ຂໍສະແດງຄວາມຍິນດີນຳເດີ້! 🎉\n\nຕົວເລກ [ ${winningNumber} ] ທີ່ທ່ານชື້ (ຈຳນວນ ${count} ປີ້) ໄດ້ຖືກລາງວັນໃຫຍ່ງວດນີ້! 🏆\n\nກະລຸນາຕິດຕໍ່ແອັດມິນເພື່ອຮັບເງິນລາງວັນເລີຍ!`);
+                await bot.telegram.sendMessage(userId, `🎉 ຊົມເຊີຍ!!! ຂໍສະແດງຄວາມຍິນດີນຳເດີ້! 🎉\n\nຕົວເລກ [ ${winningNumber} ] ທີ່ທ່ານຊື້ (ຈຳນວນ ${count} ປີ້) ໄດ້ຖືກລາງວັນໃຫຍ່ງວດນີ້! 🏆\n\nກະລຸນາຕິດຕໍ່ແອັດມິນເພື່ອຮັບເງິນລາງວັນເລີຍ!`);
                 successCount++;
             } catch (err) {}
         }
