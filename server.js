@@ -153,7 +153,7 @@ bot.start(async (ctx) => {
     const referralLink = `https://t.me/LuckyNumbervip_bot?start=${telegramId}`; 
     const channelLink = `https://t.me/LuckyNumberVIP_Channel`; 
 
-    ctx.reply(`ຍິນດີຕ້ອນຮັບສູ່ Lucky Number VIP! 🎉\n\n📢 ຕິດຕາມຜົນລາງວັນໄດ້ທີ່ Channel:\n👉 ${channelLink}\n\n🤝 ชວນໝູ່ມາຊື້ເລກ ຮັບທັນທີ 5% ຂອງຍອດຊື້!\n🔗 Link ແນະນຳຂອງທ່ານ:\n${referralLink}\n\nກະລຸນາກົດປຸ່ມລຸ່ມນີ້ເພື່ອເປີດແອັບ:`, {
+    ctx.reply(`ຍິນດີຕ້ອນຮັບສູ່ Lucky Number VIP! 🎉\n\n📢 ຕິດຕາມຜົນລາງວັນໄດ້ທີ່ Channel:\n👉 ${channelLink}\n\n🤝 ชວນໝູ່ມາຊື້ເລກ ຮັບທັນທີ 10% ຂອງຍອດຊື້!\n🔗 Link ແນະນຳຂອງທ່ານ:\n${referralLink}\n\nກະລຸນາກົດປຸ່ມລຸ່ມນີ້ເພື່ອເປີດແອັບ:`, {
         reply_markup: {
             keyboard: [ [{ text: "📲 ເປີດແອັບຊື້ຕົວເລກ", web_app: { url: appUrl } }] ],
             resize_keyboard: true
@@ -194,17 +194,17 @@ bot.on('web_app_data', async (ctx) => {
             const { error: updateError } = await supabase.from('users').update({ wallet_balance: newBalance }).eq('telegram_id', telegramId);
             if (updateError) throw updateError;
 
-            // --- ລະບົບ Affiliate 5% ---
+            // --- ລະບົບ Affiliate 10% (ປັບປຸງໃໝ່) ---
             const { data: userProfile } = await supabase.from('users').select('referrer_id').eq('telegram_id', telegramId).single();
             if (userProfile && userProfile.referrer_id) {
-                const commission = 5 * 0.05; 
+                const commission = 5 * 0.10; // ປ່ຽນເປັນ 10% (5 USDT x 0.10 = 0.5 USDT ຕໍ່ປີ້)
                 const { data: referrerData } = await supabase.from('users').select('wallet_balance').eq('telegram_id', userProfile.referrer_id).single();
                 if (referrerData) {
                     const newReferrerBalance = parseFloat(referrerData.wallet_balance) + commission;
                     await supabase.from('users').update({ wallet_balance: newReferrerBalance }).eq('telegram_id', userProfile.referrer_id);
                     try {
                         await bot.telegram.sendMessage(userProfile.referrer_id, 
-                            `💰 ຍິນດີດ້ວຍ! ໝູ່ທີ່ທ່ານແນະນຳໄດ້ຊື້ເລກ.\nທ່ານໄດ້ຮັບຄ່ານາຍໜ้า 5% ເປັນເງິນ: +${commission} USDT.\nຍອດລວມປັດຈຸບັນ: ${newReferrerBalance} USDT`);
+                            `💰 ຍິນດີດ້ວຍ! ໝູ່ທີ່ທ່ານແນະນຳໄດ້ຊື້ເລກ.\nທ່ານໄດ້ຮັບຄ່ານາຍໜ້າ 10% ເປັນເງິນ: +${commission} USDT.\nຍອດລວມປັດຈຸບັນ: ${newReferrerBalance} USDT`);
                     } catch (e) { console.log("ແຈ້ງເຕືອນຜູ້ແນະນຳຜິດພາດ", e); }
                 }
             }
