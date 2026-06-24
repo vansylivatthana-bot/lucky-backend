@@ -40,8 +40,8 @@ app.get('/api/referral-stats/:id', async (req, res) => {
 app.get('/api/prize-pool', async (req, res) => {
     res.header("Access-Control-Allow-Origin", "*");
     try {
-        const now = new Date();
-        now.setHours(now.getHours() + 7); // ເວລາລາວ
+        const localTimeStr = new Date().toLocaleString("en-US", {timeZone: "Asia/Vientiane"});
+        const now = new Date(localTimeStr);
         
         const dayOfWeek = now.getDay();
         const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; 
@@ -50,7 +50,7 @@ app.get('/api/prize-pool', async (req, res) => {
         monday.setDate(now.getDate() - diffToMonday);
         const startOfWeekStr = monday.toISOString().split('T')[0];
 
-        // 1. ນັບຈຳນວນປີ້ທີ່ຂາຍໄດ້ທັງໝົດໃນອາທິດນີ້
+        // 1. นັນຈຳນວນປີ້ທີ່ຂາຍໄດ້ທັງໝົດໃນອາທິດນີ້
         const { count, error } = await supabase
             .from('tickets')
             .select('*', { count: 'exact', head: true })
@@ -64,15 +64,15 @@ app.get('/api/prize-pool', async (req, res) => {
         // 2. ຄິດໄລ່ກອງທຶນລາງວັນ (80% ຂອງຍອດຂາຍ)
         const prizeFund = totalSales * 0.80;
 
-        // 3. ຈັດສັນລາງວັນຕາມໂຄງສ້າງຂອງທ່ານ
+        // 3. ຈັດສັນລາງວັນຕາມໂຄງສ້າງ
         const prize1 = prizeFund * 0.30; // ລາງວັນທີ 1 (1 ລາງວັນ)
         const prize2 = prizeFund * 0.20 / 3; // ລາງວັນທີ 2 (ຫານ 3)
-        const prize3 = prizeFund * 0.40 / 23; // ลາງວັນທີ 3 (ຫານ 23)
+        const prize3 = prizeFund * 0.40 / 23; // ລາງວັນທີ 3 (ຫານ 23)
 
         res.json({
             total_sales: totalSales,
             prize_fund: prizeFund,
-            prize_1: prize1.toFixed(2), // ເອົາທົດສະນິຍົມ 2 ຕຳແໜ່ງ
+            prize_1: prize1.toFixed(2),
             prize_2: prize2.toFixed(2),
             prize_3: prize3.toFixed(2)
         });
@@ -81,12 +81,12 @@ app.get('/api/prize-pool', async (req, res) => {
     }
 });
 
-// ດຶງຈຳນວນປີ້ທີ່ຂາຍໄດ້ທັງໝົດໃນອາທິດນີ້
+// ດຶງຈຳນວນປີ້ທີ່ຂາຍໄດ້ທັງໝົດໃນອາທິດນີ້ (Stats ທົ່ວໄປ)
 app.get('/api/weekly-stats', async (req, res) => {
     res.header("Access-Control-Allow-Origin", "*");
     try {
-        const now = new Date();
-        now.setHours(now.getHours() + 7); // ເວລາປະເທດລາວ
+        const localTimeStr = new Date().toLocaleString("en-US", {timeZone: "Asia/Vientiane"});
+        const now = new Date(localTimeStr);
         
         const dayOfWeek = now.getDay();
         const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; 
@@ -110,8 +110,8 @@ app.get('/api/weekly-stats', async (req, res) => {
 app.get('/api/tickets/:id', async (req, res) => {
     res.header("Access-Control-Allow-Origin", "*"); 
     try {
-        const now = new Date();
-        now.setHours(now.getHours() + 7); 
+        const localTimeStr = new Date().toLocaleString("en-US", {timeZone: "Asia/Vientiane"});
+        const now = new Date(localTimeStr);
         const dayOfWeek = now.getDay(); 
         const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; 
         const monday = new Date(now);
@@ -135,7 +135,6 @@ app.get('/api/tickets/:id', async (req, res) => {
 // --- 2. ລະບົບ Telegram Bot ຫຼັກ ---
 // ==========================================
 
-// ຄຳສັ່ງ /start
 bot.start(async (ctx) => {
     const telegramId = ctx.from.id.toString();
     const payload = ctx.startPayload; 
@@ -150,12 +149,11 @@ bot.start(async (ctx) => {
         await supabase.from('users').insert([userData]);
     }
     
-    // --- 3 ແຖວນີ້ຕ້ອງມີ ແລະ ຢູ່ດ້ານເທິງ ctx.reply ---
     const appUrl = `https://vansylivatthana-bot.github.io/lucky-number-app/?userid=${telegramId}`;
     const referralLink = `https://t.me/LuckyNumbervip_bot?start=${telegramId}`; 
-    const channelLink = `https://t.me/LuckyNumberVIP_Channel`; // Link Channel ຂອງທ່ານ
+    const channelLink = `https://t.me/LuckyNumberVIP_Channel`; 
 
-    ctx.reply(`ຍິນດີຕ້ອນຮັບສູ່ Lucky Number VIP! 🎉\n\n📢 ຕິດຕາມຜົນລາງວັນໄດ້ທີ່ Channel:\n👉 ${channelLink}\n\n🤝 ຊວນໝູ່ມາຊື້ເລກ ຮັບທັນທີ 5% ຂອງຍອດຊື້!\n🔗 Link ແນະນຳຂອງທ່ານ:\n${referralLink}\n\nກະລຸນາກົດປຸ່ມລຸ່ມນີ້ເພື່ອເປີດແອັບ:`, {
+    ctx.reply(`ຍິນດີຕ້ອນຮັບສູ່ Lucky Number VIP! 🎉\n\n📢 ຕິດຕາມຜົນລາງວັນໄດ້ທີ່ Channel:\n👉 ${channelLink}\n\n🤝 ชວນໝູ່ມາຊື້ເລກ ຮັບທັນທີ 5% ຂອງຍອດຊື້!\n🔗 Link ແນະນຳຂອງທ່ານ:\n${referralLink}\n\nກະລຸນາກົດປຸ່ມລຸ່ມນີ້ເພື່ອເປີດແອັບ:`, {
         reply_markup: {
             keyboard: [ [{ text: "📲 ເປີດແອັບຊື້ຕົວເລກ", web_app: { url: appUrl } }] ],
             resize_keyboard: true
@@ -163,7 +161,6 @@ bot.start(async (ctx) => {
     });
 });
 
-// ຮັບຂໍ້ມູນຈາກ Web App (ເມື່ອກົດຊື້)
 bot.on('web_app_data', async (ctx) => {
     const telegramId = ctx.from.id.toString();
     const data = JSON.parse(ctx.webAppData.data.text()); 
@@ -171,14 +168,14 @@ bot.on('web_app_data', async (ctx) => {
     if (data.action === 'buy_number') {
         const ticketNumber = data.number;
 
-        // --- ລະບົບປິດຮັບຊື້ເວລາ 12:00 ວັນອາທິດ ---
-        const checkTime = new Date();
-        checkTime.setHours(checkTime.getHours() + 7); // ປັບເປັນໂມງລາວ
-        const currentDay = checkTime.getDay(); // 0 = ວັນອາທິດ
-        const currentHour = checkTime.getHours(); 
+        // --- ລະບົບປິດຮັບຊື້ເວລາ 12:00 ວັນອາທິດ (ແກ້ໄຂໃຫ້ຖືກຕ້ອງ) ---
+        const localTimeStr = new Date().toLocaleString("en-US", {timeZone: "Asia/Vientiane"});
+        const now = new Date(localTimeStr);
+        const currentDay = now.getDay(); // 0 = ວັນອາທິດ
+        const currentHour = now.getHours(); 
 
         if (currentDay === 0 && currentHour >= 12) {
-            return ctx.reply('❌ ຂໍອະໄພ, ລະບົບປິດຮັບຊື້ແລ້ວສຳລັບອາທິດນີ້.\n\n⏰ ລະບົບຈະເປີດຮັບຊື້ໃໝ່ໃນວັນຈັນ ເວລາ 00:00 ໂມງ.');
+            return ctx.reply('❌ ຂໍອະໄພ, ລະບົບປິດຮັບຊື້ແລ້ວສຳລັບອາທິດນີ້.\n\n⏰ ລະບົບຈະເປີດຮັບຊື້ໃໝ່ໃນວັນຈັນ ເວലാ 00:00 ໂມງ.');
         }
         // ------------------------------------
 
@@ -207,14 +204,12 @@ bot.on('web_app_data', async (ctx) => {
                     await supabase.from('users').update({ wallet_balance: newReferrerBalance }).eq('telegram_id', userProfile.referrer_id);
                     try {
                         await bot.telegram.sendMessage(userProfile.referrer_id, 
-                            `💰 ຍິນດີດ້ວຍ! ໝູ່ທີ່ທ່ານແນະນຳໄດ້ຊື້ເລກ.\nທ່ານໄດ້ຮັບຄ່ານາຍໜ້າ 5% ເປັນເງິນ: +${commission} USDT.\nຍອດລວມປັດຈຸບັນ: ${newReferrerBalance} USDT`);
+                            `💰 ຍິນດີດ້ວຍ! ໝູ່ທີ່ທ່ານແນະນຳໄດ້ຊື້ເລກ.\nທ່ານໄດ້ຮັບຄ່ານາຍໜ้า 5% ເປັນເງິນ: +${commission} USDT.\nຍອດລວມປັດຈຸບັນ: ${newReferrerBalance} USDT`);
                     } catch (e) { console.log("ແຈ້ງເຕືອນຜູ້ແນະນຳຜິດພາດ", e); }
                 }
             }
 
             // --- ບັນທຶກປີ້ເຂົ້າຖານຂໍ້ມູນ ---
-            const now = new Date();
-            now.setHours(now.getHours() + 7); 
             const currentDate = now.toISOString().split('T')[0];
             const currentTime = now.toISOString().split('T')[1].substring(0, 8);
 
@@ -238,7 +233,6 @@ bot.on('web_app_data', async (ctx) => {
 
 const ADMIN_ID = '1774450602'; 
 
-// ຄຳສັ່ງ /topup
 bot.command('topup', async (ctx) => {
     const senderId = ctx.from.id.toString();
     if (senderId !== ADMIN_ID) return ctx.reply('❌ ຂໍອະໄພ, ທ່ານບໍ່ມີສິດນຳໃຊ້ຄຳສັ່ງນີ້.');
@@ -248,7 +242,7 @@ bot.command('topup', async (ctx) => {
     
     const targetId = messageParts[1];
     const amountToAdd = parseFloat(messageParts[2]);
-    if (isNaN(amountToAdd) || amountToAdd <= 0) return ctx.reply('❌ ຈຳນວນເງິນບໍ່ຖືກຕ້ອງ.');
+    if (isNaN(amountToAdd) || amountToAdd <= 0) return ctx.reply('❌ จຳນວນເງິນບໍ່ຖືກຕ້ອງ.');
 
     try {
         const { data: userData, error: fetchError } = await supabase.from('users').select('wallet_balance').eq('telegram_id', targetId).single();
@@ -257,7 +251,7 @@ bot.command('topup', async (ctx) => {
         const newBalance = parseFloat(userData.wallet_balance) + amountToAdd;
         await supabase.from('users').update({ wallet_balance: newBalance }).eq('telegram_id', targetId);
         
-        ctx.reply(`✅ ເຕີມເງິນສຳເລັດ!\n👤 ເຂົ້າ ID: ${targetId}\n💰 ຈຳນວນ: +${amountToAdd} USDT\n💳 ຍອດເງິນປັດຈຸບັນ: ${newBalance} USDT`);
+        ctx.reply(`✅ ເտີມເງິນສຳເລັດ!\n👤 ເຂົ້າ ID: ${targetId}\n💰 ຈຳນວນ: +${amountToAdd} USDT\n💳 ຍອດເງິນປັດຈຸບັນ: ${newBalance} USDT`);
         
         if (targetId !== ADMIN_ID) {
             try { await bot.telegram.sendMessage(targetId, `🎉 ທ່ານໄດ້ຮັບການເຕີມເງິນຈຳນວນ ${amountToAdd} USDT.\n💰 ຍອດເງິນຄົງເຫຼືອ: ${newBalance} USDT`); } catch (err) {}
@@ -265,7 +259,6 @@ bot.command('topup', async (ctx) => {
     } catch (err) { ctx.reply('❌ ເກີດຂໍ້ຜິດພາດ.'); }
 });
 
-// ຄຳສັ່ງ /draw
 bot.command('draw', async (ctx) => {
     const senderId = ctx.from.id.toString();
     if (senderId !== ADMIN_ID) return ctx.reply('❌ ຂໍອະໄພ, ທ່ານບໍ່ມີສິດນຳໃຊ້ຄຳສັ່ງນີ້.');
@@ -291,7 +284,7 @@ bot.command('draw', async (ctx) => {
         let successCount = 0;
         for (const [userId, count] of Object.entries(winnersMap)) {
             try {
-                await bot.telegram.sendMessage(userId, `🎉 ຊົມເຊີຍ!!! ຂໍສະແດງຄວາມຍິນດີນຳເດີ້! 🎉\n\nຕົວເລກ [ ${winningNumber} ] ທີ່ທ່ານຊື້ (ຈຳນວນ ${count} ປີ້) ໄດ້ຖືກລາງວັນໃຫຍ່ງວດນີ້! 🏆\n\nກະລຸນາຕິດຕໍ່ແອັດມິນເພື່ອຮັບເງິນລາງວັນເລີຍ!`);
+                await bot.telegram.sendMessage(userId, `🎉 ຊົມເຊີຍ!!! ຂໍສະແດງຄວາມຍິນດີນຳເດີ້! 🎉\n\nຕົວເລກ [ ${winningNumber} ] ທີ່ທ່ານชື້ (ຈຳນວນ ${count} ປີ້) ໄດ້ຖືກລາງວັນໃຫຍ່ງວດນີ້! 🏆\n\nກະລຸນາຕິດຕໍ່ແອັດມິນເພື່ອຮັບເງິນລາງວັນເລີຍ!`);
                 successCount++;
             } catch (err) {}
         }
@@ -306,18 +299,13 @@ bot.command('draw', async (ctx) => {
 
 const PORT = process.env.PORT || 3000;
 const WEBHOOK_PATH = '/webhook';
-// ⚠️ ໃຫ້ແນ່ໃຈວ່າ URL ນີ້ກົງກັບຊື່ Service ໃນ Render ຂອງທ່ານ ⚠️
 const APP_URL = 'https://lucky-backend-api.onrender.com';
 
-// ບອກໃຫ້ Express ຮັບ Webhook ຈາກ Telegram
 app.use(bot.webhookCallback(WEBHOOK_PATH));
 
-// ເປີດ Server ສຳລັບ Render
 app.listen(PORT, async () => {
     console.log(`🌐 Web Server ກຳລັງເຮັດວຽກຢູ່ທີ່ພອດ ${PORT}`);
-    
     try {
-        // ແຈ້ງໃຫ້ Telegram ຮູ້ວ່າໃຫ້ສົ່ງຂໍ້ມູນມາທີ່ URL ນີ້
         await bot.telegram.setWebhook(`${APP_URL}${WEBHOOK_PATH}`);
         console.log(`✅ Webhook ຕັ້ງຄ່າສຳເລັດແລ້ວໄປທີ່: ${APP_URL}${WEBHOOK_PATH}`);
     } catch (error) {
@@ -325,7 +313,6 @@ app.listen(PORT, async () => {
     }
 });
 
-// ໜ້າຫຼັກໄວ້ສຳລັບທົດສອບ (Uptime Robot ຈະດຶງໜ້ານີ້)
 app.get('/', (req, res) => { 
     res.send('✅ Lucky Number Bot Backend is running successfully with Webhook!'); 
 });
