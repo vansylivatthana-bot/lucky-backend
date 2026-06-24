@@ -36,6 +36,51 @@ app.get('/api/referral-stats/:id', async (req, res) => {
     } catch (err) { res.json({ friends_count: 0 }); }
 });
 
+// --- API ໃໝ່: ຄິດໄລ່ ແລະ ດຶງມູນຄ່າເງິນລາງວັນປະຈຳອາທິດ ---
+app.get('/api/prize-pool', async (req, res) => {
+    res.header("Access-Control-Allow-Origin", "*");
+    try {
+        const now = new Date();
+        now.setHours(now.getHours() + 7); // ເວລາລາວ
+        
+        const dayOfWeek = now.getDay();
+        const diffToMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; 
+        
+        const monday = new Date(now);
+        monday.setDate(now.getDate() - diffToMonday);
+        const startOfWeekStr = monday.toISOString().split('T')[0];
+
+        // 1. ນັບຈຳນວນປີ້ທີ່ຂາຍໄດ້ທັງໝົດໃນອາທິດນີ້
+        const { count, error } = await supabase
+            .from('tickets')
+            .select('*', { count: 'exact', head: true })
+            .gte('Date_book', startOfWeekStr);
+
+        if (error) throw error;
+
+        const totalTickets = count || 0;
+        const totalSales = totalTickets * 10; // ປີ້ລະ 10 USDT
+        
+        // 2. ຄິດໄລ່ກອງທຶນລາງວັນ (80% ຂອງຍອດຂາຍ)
+        const prizeFund = totalSales * 0.80;
+
+        // 3. ຈັດສັນລາງວັນຕາມໂຄງສ້າງຂອງທ່ານ
+        const prize1 = prizeFund * 0.30; // ລາງວັນທີ 1 (1 ລາງວັນ)
+        const prize2 = prizeFund * 0.20 / 3; // ລາງວັນທີ 2 (ຫານ 3)
+        const prize3 = prizeFund * 0.40 / 23; // ลາງວັນທີ 3 (ຫານ 23)
+
+        res.json({
+            total_sales: totalSales,
+            prize_fund: prizeFund,
+            prize_1: prize1.toFixed(2), // ເອົາທົດສະນິຍົມ 2 ຕຳແໜ່ງ
+            prize_2: prize2.toFixed(2),
+            prize_3: prize3.toFixed(2)
+        });
+    } catch (err) {
+        res.json({ prize_fund: 0, prize_1: "0.00", prize_2: "0.00", prize_3: "0.00" });
+    }
+});
+
 // ດຶງຈຳນວນປີ້ທີ່ຂາຍໄດ້ທັງໝົດໃນອາທິດນີ້
 app.get('/api/weekly-stats', async (req, res) => {
     res.header("Access-Control-Allow-Origin", "*");
