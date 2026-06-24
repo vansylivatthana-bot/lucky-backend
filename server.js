@@ -249,7 +249,7 @@ bot.command('topup', async (ctx) => {
         const newBalance = parseFloat(userData.wallet_balance) + amountToAdd;
         await supabase.from('users').update({ wallet_balance: newBalance }).eq('telegram_id', targetId);
         
-        ctx.reply(`✅ ເտີມເງິນສຳເລັດ!\n👤 ເຂົ້າ ID: ${targetId}\n💰 ຈຳນວນ: +${amountToAdd} USDT\n💳 ຍອດເງິນປັດຈຸບັນ: ${newBalance} USDT`);
+        ctx.reply(`✅ ເຕີມເງິນສຳເລັດ!\n👤 ເຂົ້າ ID: ${targetId}\n💰 ຈຳນວນ: +${amountToAdd} USDT\n💳 ຍອດເງິນປັດຈຸບັນ: ${newBalance} USDT`);
         
         if (targetId !== ADMIN_ID) {
             try { await bot.telegram.sendMessage(targetId, `🎉 ທ່ານໄດ້ຮັບການເຕີມເງິນຈຳນວນ ${amountToAdd} USDT.\n💰 ຍອດເງິນຄົງເຫຼືອ: ${newBalance} USDT`); } catch (err) {}
