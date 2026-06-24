@@ -105,10 +105,12 @@ bot.start(async (ctx) => {
         await supabase.from('users').insert([userData]);
     }
     
+    // --- 3 ແຖວນີ້ຕ້ອງມີ ແລະ ຢູ່ດ້ານເທິງ ctx.reply ---
     const appUrl = `https://vansylivatthana-bot.github.io/lucky-number-app/?userid=${telegramId}`;
     const referralLink = `https://t.me/LuckyNumbervip_bot?start=${telegramId}`; 
+    const channelLink = `https://t.me/LuckyNumberVIP_Channel`; // Link Channel ຂອງທ່ານ
 
-    ctx.reply(`ຍິນດີຕ້ອນຮັບ! 🎉\n\n🤝 ຊວນໝູ່ມາຊື້ເລກ ຮັບທັນທີ 5% ຂອງຍອດຊື້!\n🔗 Link ແນະນຳຂອງທ່ານ:\n${referralLink}\n\nກະລຸນາກົດປຸ່ມລຸ່ມນີ້ເພື່ອເປີດແອັບຊື້ຕົວເລກນຳໂຊກ:`, {
+    ctx.reply(`ຍິນດີຕ້ອນຮັບສູ່ Lucky Number VIP! 🎉\n\n📢 ຕິດຕາມຜົນລາງວັນໄດ້ທີ່ Channel:\n👉 ${channelLink}\n\n🤝 ຊວນໝູ່ມາຊື້ເລກ ຮັບທັນທີ 5% ຂອງຍອດຊື້!\n🔗 Link ແນະນຳຂອງທ່ານ:\n${referralLink}\n\nກະລຸນາກົດປຸ່ມລຸ່ມນີ້ເພື່ອເປີດແອັບ:`, {
         reply_markup: {
             keyboard: [ [{ text: "📲 ເປີດແອັບຊື້ຕົວເລກ", web_app: { url: appUrl } }] ],
             resize_keyboard: true
