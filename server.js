@@ -144,7 +144,7 @@ bot.start(async (ctx) => {
         await supabase.from('users').insert([userData]);
     }
     
-    const appUrl = `https://vansylivatthana-bot.github.io/lucky-number-app/?userid=${telegramId}`;
+    const appUrl = `https://lucky-number-app-b68b.onrender.com/?userid=${telegramId}`;
     const referralLink = `https://t.me/LuckyNumbervip_bot?start=${telegramId}`; 
     const channelLink = `https://t.me/LuckyNumberVIP_Channel`; 
 
