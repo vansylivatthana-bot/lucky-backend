@@ -1,17 +1,14 @@
 const { Telegraf } = require('telegraf');
 const { createClient } = require('@supabase/supabase-js');
-const express = require('express'); 
+const express = require('express');
 
-// ໃສ່ລະຫັດຂອງທ່ານບ່ອນນີ້
-const BOT_TOKEN = '8921585286:AAFJ-jZk1GBoSpJSJwbhuqTG7iqm-aQuxlE';
-const SUPABASE_URL = 'https://fsrpcwrhskhnglrmutsz.supabase.co';
-const SUPABASE_KEY = 'sb_secret_CGMwhxFtwz39gMzZmVEfgg_gk4BGK4e';
+const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_KEY;
 
 const bot = new Telegraf(BOT_TOKEN);
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 const app = express();
-
-app.use(express.json());
 
 // ==========================================
 // --- 1. API ສຳລັບໜ້າແອັບ (Frontend) ---
