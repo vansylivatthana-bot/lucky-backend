@@ -2,9 +2,15 @@ const { Telegraf } = require('telegraf');
 const { createClient } = require('@supabase/supabase-js');
 const express = require('express');
 
-const BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_KEY;
+const BOT_TOKEN = (process.env.TELEGRAM_BOT_TOKEN || '').trim();
+const SUPABASE_URL = (process.env.SUPABASE_URL || '').trim();
+const SUPABASE_KEY = (process.env.SUPABASE_KEY || '').trim();
+
+console.log('Telegram token check:', {
+  present: Boolean(BOT_TOKEN),
+  botId: BOT_TOKEN.split(':')[0] || 'missing',
+  length: BOT_TOKEN.length
+});
 
 const bot = new Telegraf(BOT_TOKEN);
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
